@@ -10,11 +10,8 @@ class JType:
 
 class JArray(JType):
     def __init__(self, type):
-        if type.cpp in primitives:
-            name = type.cpp + 'Array'
-        else:
-            name = 'jobjectArray'
-        super().__init__(name, '[' + type.jni)
+        name = f'{type.cpp}Array' if type.cpp in primitives else 'jobjectArray'
+        super().__init__(name, f'[{type.jni}')
 
 
 class Argument:
@@ -94,13 +91,13 @@ class ForkAndSpec(JNIHook):
         decl += ind(1) + self.init_args()
         for a in self.args:
             if a.set_arg:
-                decl += ind(1) + f'args.{a.name} = &{a.name};'
-        decl += ind(1) + 'ZygiskContext ctx(env, &args);'
-        decl += ind(1) + f'ctx.{self.base_name()}_pre();'
+                decl += f'{ind(1)}args.{a.name} = &{a.name};'
+        decl += f'{ind(1)}ZygiskContext ctx(env, &args);'
+        decl += f'{ind(1)}ctx.{self.base_name()}_pre();'
         decl += ind(1) + self.orig_method() + '('
-        decl += ind(2) + f'env, clazz, {self.name_list()}'
-        decl += ind(1) + ');'
-        decl += ind(1) + f'ctx.{self.base_name()}_post();'
+        decl += f'{ind(2)}env, clazz, {self.name_list()}'
+        decl += f'{ind(1)});'
+        decl += f'{ind(1)}ctx.{self.base_name()}_post();'
         return decl
 
 class SpecApp(ForkAndSpec):
@@ -207,21 +204,21 @@ def gen_jni_def(clz, methods):
 
     decl = ''
     for m in methods:
-        decl += ind(0) + f'[[clang::no_stack_protector]] {m.ret.type.cpp} {m.name}(JNIEnv *env, jclass clazz, {m.cpp()}) {{'
+        decl += f'{ind(0)}[[clang::no_stack_protector]] {m.ret.type.cpp} {m.name}(JNIEnv *env, jclass clazz, {m.cpp()}) {{'
         decl += m.body()
         if m.ret.value:
-            decl += ind(1) + f'return {m.ret.value};'
+            decl += f'{ind(1)}return {m.ret.value};'
         decl += ind(0) + '}'
 
-    decl += ind(0) + f'std::array {m.base_name()}_methods = {{'
+    decl += f'{ind(0)}std::array {m.base_name()}_methods = {{'
     for m in methods:
         decl += ind(1) + 'JNINativeMethod {'
-        decl += ind(2) + f'"{m.base_name()}",'
-        decl += ind(2) + f'"{m.jni()}",'
-        decl += ind(2) + f'(void *) &{m.name}'
+        decl += f'{ind(2)}"{m.base_name()}",'
+        decl += f'{ind(2)}"{m.jni()}",'
+        decl += f'{ind(2)}(void *) &{m.name}'
         decl += ind(1) + '},'
     decl += ind(0) + '};'
-    decl = ind(0) + f'void *{m.base_name()}_orig = nullptr;' + decl
+    decl = f'{ind(0)}void *{m.base_name()}_orig = nullptr;{decl}'
     decl += ind(0)
 
     hook_map[clz].append(m.base_name())
